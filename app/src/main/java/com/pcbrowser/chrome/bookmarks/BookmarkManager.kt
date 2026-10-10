@@ -10,7 +10,7 @@ class BookmarkManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_BOOKMARKS, Context.MODE_PRIVATE)
 
     companion object {
-        private const val PREFS_BOOKMARKS = "chrome_pc_bookmarks"
+        private const val PREFS_BOOKMARKS = "deskweb_bookmarks"
         private const val KEY_PREFIX = "bookmarks_"
     }
 

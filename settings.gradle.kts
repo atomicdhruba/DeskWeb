@@ -14,4 +14,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "DeskWeb"
-include(":chrome_pc")
+include(":app")

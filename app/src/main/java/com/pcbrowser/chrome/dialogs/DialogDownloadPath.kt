@@ -69,7 +69,7 @@ class DialogDownloadPath(
         container.addView(hintText)
 
         val input = EditText(context).apply {
-            hint = "/storage/emulated/0/Download/ChromePC"
+            hint = "/storage/emulated/0/Download/DeskWeb"
             setText(settings.downloadPath)
             setSingleLine(true)
         }

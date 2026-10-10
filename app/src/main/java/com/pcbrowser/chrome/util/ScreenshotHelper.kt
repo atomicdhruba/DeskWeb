@@ -30,7 +30,7 @@ object ScreenshotHelper {
                 screenshotsDir.mkdirs()
             }
 
-            val screenshotFile = File(screenshotsDir, "ChromePC_${System.currentTimeMillis()}.png")
+            val screenshotFile = File(screenshotsDir, "DeskWeb_${System.currentTimeMillis()}.png")
             FileOutputStream(screenshotFile).use { fos ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
                 fos.flush()

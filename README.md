@@ -105,10 +105,10 @@ git clone https://github.com/atomicdhruba/DeskWeb.git
 cd DeskWeb
 
 # Build Debug APK
-./gradlew :chrome_pc:assembleDebug
+./gradlew :app:assembleDebug
 
 # The APK will be ready at:
-# chrome_pc/build/outputs/apk/debug/chrome_pc-debug.apk
+# app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ---

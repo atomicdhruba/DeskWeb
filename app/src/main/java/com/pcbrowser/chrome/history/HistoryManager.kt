@@ -10,7 +10,7 @@ class HistoryManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_HISTORY, Context.MODE_PRIVATE)
 
     companion object {
-        private const val PREFS_HISTORY = "chrome_pc_history"
+        private const val PREFS_HISTORY = "deskweb_history"
         private const val KEY_PREFIX = "history_profile_"
         private const val MAX_ENTRIES = 1000
     }

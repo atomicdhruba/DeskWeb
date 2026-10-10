@@ -8,7 +8,7 @@ class SettingsPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     companion object {
-        private const val PREFS_NAME = "chrome_pc_settings"
+        private const val PREFS_NAME = "deskweb_settings"
 
         const val KEY_ORIENTATION = "key_orientation"
         const val ORIENTATION_LANDSCAPE = "landscape"

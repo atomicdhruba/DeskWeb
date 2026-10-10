@@ -13,7 +13,7 @@ class ProfileManager(context: Context) {
     private val settings = SettingsPreferences(context)
 
     companion object {
-        private const val PREFS_PROFILES = "chrome_pc_profiles"
+        private const val PREFS_PROFILES = "deskweb_profiles"
         private const val KEY_PROFILES_JSON = "key_profiles_json"
         private const val KEY_PREFIX_TABS = "profile_tabs_"
 
