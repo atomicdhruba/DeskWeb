@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:background="@drawable/ui_browser_btn_subtle"
+    android:focusable="true"
+    android:clickable="true"
+    android:layout_width="wrap_content"
+    android:layout_height="28dp"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:layout_marginEnd="4dp">
+    <ImageView
+        android:id="@+id/bmIcon"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:src="@drawable/ic_bm_globe"
+        android:scaleType="fitCenter"/>
+    <TextView
+        android:textSize="12sp"
+        android:textColor="@color/text_default"
+        android:ellipsize="end"
+        android:id="@+id/bmTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="140dp"
+        android:text="Bookmark"
+        android:maxLines="1"
+        android:layout_marginStart="6dp"/>
+</LinearLayout>

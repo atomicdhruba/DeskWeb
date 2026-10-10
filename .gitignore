@@ -1,0 +1,28 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+
+# Local configuration file (contains local SDK path & username)
+local.properties
+
+# Build directories & caches
+.gradle/
+build/
+*/build/
+.kotlin/
+
+# IDE files
+.idea/
+*.iml
+.navigation/
+captures/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Reverse-engineering tools & extracted dumps
+tools/
+Chrome_PC_extracted/
+decompiled_chrome_res/

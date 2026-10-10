@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_hovered="true">
+        <shape android:shape="oval">
+            <solid android:color="@color/ui_browser_tint_ripple_primary"/>
+            <size
+                android:height="28dp"
+                android:width="28dp"/>
+        </shape>
+    </item>
+    <item>
+        <ripple android:color="@color/ui_browser_btn_tint">
+            <item android:id="@android:id/mask">
+                <shape android:shape="oval">
+                    <size
+                        android:height="28dp"
+                        android:width="28dp"/>
+                    <solid android:color="@android:color/black"/>
+                </shape>
+            </item>
+        </ripple>
+    </item>
+</selector>

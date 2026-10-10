@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.DeskWeb" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/ui_browser_settings_bg</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+    </style>
+
+    <style name="Theme.ChromePC" parent="Theme.DeskWeb" />
+
+    <style name="AnimationDialogMaterial" parent="">
+        <item name="android:windowEnterAnimation">@anim/ui_browser_dialog_open</item>
+        <item name="android:windowExitAnimation">@anim/ui_browser_dialog_close</item>
+    </style>
+</resources>

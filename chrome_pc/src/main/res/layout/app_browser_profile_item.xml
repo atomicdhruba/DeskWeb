@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:background="@drawable/ui_browser_btn_subtle"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:focusable="true"
+    android:clickable="true"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
+    <TextView
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#ffffff"
+        android:gravity="center"
+        android:id="@+id/avatarBadge"
+        android:background="@drawable/ui_browser_circle_avatar"
+        android:layout_width="32dp"
+        android:layout_height="32dp"/>
+    <TextView
+        android:textSize="14sp"
+        android:textColor="@color/text_default"
+        android:id="@+id/profileName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Profile Name"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"/>
+    <ImageView
+        android:id="@+id/imgActiveCheck"
+        android:visibility="gone"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@drawable/ic_checkmark_24_filled"/>
+    <ImageButton
+        android:id="@+id/btnDeleteProfile"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="4dp"
+        android:visibility="gone"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ui_browser_ic_close"/>
+</LinearLayout>

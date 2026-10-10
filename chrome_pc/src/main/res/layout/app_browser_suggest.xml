@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:background="?android:attr/selectableItemBackground"
+    android:paddingLeft="12dp"
+    android:paddingRight="12dp"
+    android:descendantFocusability="blocksDescendants"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp">
+    <TextView
+        android:textSize="14sp"
+        android:textColor="@color/text_muted"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:id="@android:id/text1"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:drawablePadding="12dp"
+        android:layout_weight="1"
+        android:layout_marginEnd="8dp"
+        android:paddingVertical="8dp"
+        app:drawableStartCompat="@drawable/ui_browser_ic_history_14"/>
+    <ImageButton
+        android:id="@+id/btn_delete"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:src="@drawable/app_title_ic_close_16"
+        android:scaleType="center"
+        android:contentDescription="@string/context_menu_delete"/>
+</LinearLayout>

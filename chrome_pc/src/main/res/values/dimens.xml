@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="ui_4dp">4dp</dimen>
+    <dimen name="ui_6dp">6dp</dimen>
+    <dimen name="ui_8dp">8dp</dimen>
+    <dimen name="ui_10dp">10dp</dimen>
+    <dimen name="ui_12dp">12dp</dimen>
+    <dimen name="ui_14dp">14dp</dimen>
+    <dimen name="ui_16dp">16dp</dimen>
+    <dimen name="ui_20dp">20dp</dimen>
+    <dimen name="ui_24dp">24dp</dimen>
+    <dimen name="ui_30dp">30dp</dimen>
+    <dimen name="ui_34dp">34dp</dimen>
+    <dimen name="ui_38dp">38dp</dimen>
+    <dimen name="ui_40dp">40dp</dimen>
+    <dimen name="ui_84dp">84dp</dimen>
+    <dimen name="ui_156dp">156dp</dimen>
+    <dimen name="app_window_radius">10dp</dimen>
+</resources>
