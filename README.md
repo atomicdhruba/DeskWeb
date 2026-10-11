@@ -78,6 +78,10 @@ When using a physical keyboard, Bluetooth keyboard, or desktop dock (DeX, Ready 
 
 | Shortcut | Action |
 | :--- | :--- |
+| <kbd>Ctrl</kbd> + <kbd>C</kbd> | Copy selected text / input to clipboard |
+| <kbd>Ctrl</kbd> + <kbd>V</kbd> | Paste text from clipboard into page / address bar |
+| <kbd>Ctrl</kbd> + <kbd>X</kbd> | Cut selected text |
+| <kbd>Ctrl</kbd> + <kbd>A</kbd> | Select all text / content |
 | <kbd>Ctrl</kbd> + <kbd>T</kbd> | Open New Tab |
 | <kbd>Ctrl</kbd> + <kbd>W</kbd> | Close Current Tab |
 | <kbd>Ctrl</kbd> + <kbd>R</kbd> / <kbd>F5</kbd> | Reload Current Page |
@@ -87,6 +91,8 @@ When using a physical keyboard, Bluetooth keyboard, or desktop dock (DeX, Ready 
 | <kbd>Ctrl</kbd> + <kbd>J</kbd> | Open Downloads |
 | <kbd>F11</kbd> | Toggle Fullscreen Mode |
 | <kbd>Ctrl</kbd> + <kbd>+</kbd> / <kbd>-</kbd> | Zoom In / Out |
+
+> 💡 **scrcpy & Physical Keyboard Mode**: Click the **Keyboard Toggle button** on the top toolbar (or in the Settings menu) to completely block the on-screen virtual keyboard from popping up when clicking inputs, while keeping physical keyboard typing 100% active!
 
 ---
 
