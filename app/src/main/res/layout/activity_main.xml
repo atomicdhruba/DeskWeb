@@ -154,6 +154,18 @@
             android:contentDescription="@string/context_menu_downloads"
             android:layout_marginHorizontal="2dp"/>
         <ImageButton
+            android:id="@+id/btn_keyboard_toggle"
+            android:background="@drawable/ui_browser_btn_nav"
+            android:padding="6dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="2dp"
+            android:src="@drawable/ic_keyboard_black_24dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="Toggle Virtual Keyboard"
+            android:layout_marginHorizontal="2dp"/>
+        <ImageButton
             android:id="@+id/btn_menu"
             android:background="@drawable/ui_browser_btn_nav"
             android:padding="6dp"

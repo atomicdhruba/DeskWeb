@@ -103,6 +103,7 @@ class BrowserTabFragment : Fragment() {
         }
 
         // Setup Shortcut forwarding
+        wv.isKeyboardRestricted = mainActivity?.isKeyboardRestricted() ?: false
         wv.keyShortcutListener = object : ShortcutWebView.KeyShortcutListener {
             override fun onShortcut(keyCode: Int, event: KeyEvent): Boolean {
                 return mainActivity?.handleShortcut(keyCode) ?: false
@@ -246,6 +247,9 @@ class BrowserTabFragment : Fragment() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 currentCertificate = view?.certificate
+                if (wv.isKeyboardRestricted) {
+                    wv.applyKeyboardRestrictionJs(true)
+                }
                 url?.let {
                     currentUrl = it
                     mainActivity?.onTabUrl(tabId, it, false)

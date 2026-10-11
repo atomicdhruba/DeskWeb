@@ -33,6 +33,7 @@ class SettingsPreferences(context: Context) {
         const val KEY_DOWNLOAD_PATH_NAME = "key_download_path_name"
 
         const val KEY_SEARCH_ENGINE = "key_search_engine"
+        const val KEY_RESTRICT_VIRTUAL_KEYBOARD = "key_restrict_virtual_keyboard"
     }
 
     var orientation: String
@@ -86,4 +87,8 @@ class SettingsPreferences(context: Context) {
     var activeSearchEngineId: String
         get() = prefs.getString(KEY_SEARCH_ENGINE, "google") ?: "google"
         set(value) = prefs.edit().putString(KEY_SEARCH_ENGINE, value).apply()
+
+    var restrictVirtualKeyboard: Boolean
+        get() = prefs.getBoolean(KEY_RESTRICT_VIRTUAL_KEYBOARD, false)
+        set(value) = prefs.edit().putBoolean(KEY_RESTRICT_VIRTUAL_KEYBOARD, value).apply()
 }

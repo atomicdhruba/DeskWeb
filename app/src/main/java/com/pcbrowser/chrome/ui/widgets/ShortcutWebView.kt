@@ -26,6 +26,49 @@ class ShortcutWebView @JvmOverloads constructor(
 
     var keyShortcutListener: KeyShortcutListener? = null
 
+    var isKeyboardRestricted: Boolean = false
+        set(value) {
+            field = value
+            applyKeyboardRestrictionJs(value)
+        }
+
+    fun applyKeyboardRestrictionJs(restricted: Boolean) {
+        if (restricted) {
+            evaluateJavascript("""
+                (function() {
+                    try {
+                        var inputs = document.querySelectorAll('input, textarea');
+                        for (var i = 0; i < inputs.length; i++) {
+                            inputs[i].setAttribute('inputmode', 'none');
+                        }
+                    } catch(e) {}
+                })();
+            """.trimIndent(), null)
+        } else {
+            evaluateJavascript("""
+                (function() {
+                    try {
+                        var inputs = document.querySelectorAll('input[inputmode="none"], textarea[inputmode="none"]');
+                        for (var i = 0; i < inputs.length; i++) {
+                            inputs[i].removeAttribute('inputmode');
+                        }
+                    } catch(e) {}
+                })();
+            """.trimIndent(), null)
+        }
+    }
+
+    override fun onTouchEvent(event: android.view.MotionEvent?): Boolean {
+        if (isKeyboardRestricted && event?.action == android.view.MotionEvent.ACTION_UP) {
+            applyKeyboardRestrictionJs(true)
+            post {
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+                imm?.hideSoftInputFromWindow(windowToken, 0)
+            }
+        }
+        return super.onTouchEvent(event)
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val isCopy = event.keyCode == KeyEvent.KEYCODE_COPY || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_C)
         val isPaste = event.keyCode == KeyEvent.KEYCODE_PASTE || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_V)

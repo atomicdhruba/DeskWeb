@@ -20,6 +20,7 @@ import android.util.Patterns
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.URLUtil
@@ -111,6 +112,7 @@ class MainActivity : AppCompatActivity() {
         setupBookmarksBar()
         setupTabStripLayoutListener()
         setupBackPressHandler()
+        applyVirtualKeyboardRestriction(settings.restrictVirtualKeyboard, showToast = false)
 
         // Restore tabs for active profile or launch intent
         val intentUrl = intent?.dataString
@@ -218,6 +220,7 @@ class MainActivity : AppCompatActivity() {
     fun isAdBlockEnabled(): Boolean = settings.adBlockEnabled
     fun isHttpsOnlyEnabled(): Boolean = settings.httpsOnly
     fun isDoNotTrackEnabled(): Boolean = settings.doNotTrack
+    fun isKeyboardRestricted(): Boolean = settings.restrictVirtualKeyboard
     fun recordHistory(url: String, title: String) {
         historyManager.addEntry(profileManager.getActiveProfile().id, url, title)
     }
@@ -534,6 +537,10 @@ class MainActivity : AppCompatActivity() {
             downloadsPopup.showDownloadStatus(binding.btnDownloads, null, 3)
         }
 
+        binding.btnKeyboardToggle.setOnClickListener {
+            toggleVirtualKeyboardRestriction()
+        }
+
         binding.btnMenu.setOnClickListener {
             showSettingsMenu()
         }
@@ -666,6 +673,7 @@ class MainActivity : AppCompatActivity() {
         binding.addressBar.setAddress(tab.url)
         updateNavButtons(tab)
         updateBookmarkStar(tab.url)
+        tab.fragment?.webView?.isKeyboardRestricted = settings.restrictVirtualKeyboard
     }
 
     fun onActiveTabLoadingChanged(tab: TabModel) {
@@ -889,6 +897,9 @@ class MainActivity : AppCompatActivity() {
                     val state = if (isDesktop) "Desktop Site" else "Mobile Site"
                     Toast.makeText(this, "User-Agent: $state", Toast.LENGTH_SHORT).show()
                 }
+                DialogSettings.Action.TOGGLE_RESTRICT_KEYBOARD -> {
+                    toggleVirtualKeyboardRestriction()
+                }
                 DialogSettings.Action.TOGGLE_AD_BLOCK -> {
                     settings.adBlockEnabled = !settings.adBlockEnabled
                     val state = if (settings.adBlockEnabled) "Enabled" else "Disabled"
@@ -989,7 +1000,7 @@ class MainActivity : AppCompatActivity() {
     private fun showAboutDialog() {
         AlertDialog.Builder(this)
             .setTitle(R.string.app_name)
-            .setMessage("Chrome PC - Standalone Desktop Web Browser for Android\nReplicated from HyperDroid desktop browser subsystem.")
+            .setMessage("DeskWeb - Desktop Web Browser for Android\nDesktop-Class Web Experience.")
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
@@ -1000,7 +1011,49 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showKeyboard() {
+        if (settings.restrictVirtualKeyboard) return
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.showSoftInput(binding.addressBar, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun applyVirtualKeyboardRestriction(restrict: Boolean, showToast: Boolean = false) {
+        if (restrict) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            binding.addressBar.showSoftInputOnFocus = false
+            binding.btnKeyboardToggle.setImageResource(R.drawable.ic_keyboard_off_24dp)
+            binding.btnKeyboardToggle.imageTintList = ColorStateList.valueOf(Color.parseColor("#E63946"))
+            binding.btnKeyboardToggle.contentDescription = "Virtual Keyboard: Blocked (Click to allow)"
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM)
+            binding.addressBar.showSoftInputOnFocus = true
+            binding.btnKeyboardToggle.setImageResource(R.drawable.ic_keyboard_black_24dp)
+            binding.btnKeyboardToggle.imageTintList = ColorStateList.valueOf(Color.parseColor("#5F6368"))
+            binding.btnKeyboardToggle.contentDescription = "Virtual Keyboard: Allowed (Click to block)"
+        }
+
+        // Hide keyboard immediately from current focus
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(binding.root.windowToken, 0)
+        imm?.hideSoftInputFromWindow(binding.addressBar.windowToken, 0)
+
+        // Propagate to all open tabs and their webViews
+        for (tab in tabsManager.tabs) {
+            tab.fragment?.webView?.isKeyboardRestricted = restrict
+        }
+
+        if (showToast) {
+            val msg = if (restrict) {
+                "Virtual keyboard blocked (Physical keyboard mode active)"
+            } else {
+                "Virtual keyboard enabled"
+            }
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun toggleVirtualKeyboardRestriction() {
+        val newState = !settings.restrictVirtualKeyboard
+        settings.restrictVirtualKeyboard = newState
+        applyVirtualKeyboardRestriction(newState, showToast = true)
     }
 }

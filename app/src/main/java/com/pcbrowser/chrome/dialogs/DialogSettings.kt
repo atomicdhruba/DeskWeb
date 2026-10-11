@@ -32,6 +32,7 @@ class DialogSettings(
         TOGGLE_BOOKMARKS_BAR,
         TOGGLE_IMMERSIVE,
         TOGGLE_DESKTOP_UA,
+        TOGGLE_RESTRICT_KEYBOARD,
         TOGGLE_AD_BLOCK,
         TOGGLE_HTTPS_ONLY,
         TOGGLE_DNT,
@@ -126,6 +127,13 @@ class DialogSettings(
         btnDesktopUA.setOnClickListener {
             dismiss()
             onAction(Action.TOGGLE_DESKTOP_UA, currentZoomPercent)
+        }
+
+        val btnRestrictKeyboard = popupView.findViewById<TextView>(R.id.btnRestrictKeyboard)
+        updateCheckmark(btnRestrictKeyboard, settings.restrictVirtualKeyboard)
+        btnRestrictKeyboard.setOnClickListener {
+            dismiss()
+            onAction(Action.TOGGLE_RESTRICT_KEYBOARD, currentZoomPercent)
         }
 
         // Privacy options

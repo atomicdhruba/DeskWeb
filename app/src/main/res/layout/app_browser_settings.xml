@@ -191,6 +191,22 @@
                 android:textSize="13sp"
                 app:drawableStartCompat="@drawable/ui_browser_ic_devices_18" />
 
+            <TextView
+                android:id="@+id/btnRestrictKeyboard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/ui_browser_btn_subtle"
+                android:clickable="true"
+                android:drawablePadding="14dp"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:text="@string/browser_menu_restrict_keyboard"
+                android:textColor="@color/text_default"
+                android:textSize="13sp"
+                app:drawableStartCompat="@drawable/ic_checkmark_24_filled" />
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
