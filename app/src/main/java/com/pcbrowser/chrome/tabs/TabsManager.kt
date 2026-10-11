@@ -2,12 +2,16 @@ package com.pcbrowser.chrome.tabs
 
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
+import android.os.Build
 import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.PointerIcon
 import android.view.View
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.appcompat.widget.PopupMenu
 import androidx.fragment.app.FragmentManager
 import com.pcbrowser.chrome.MainActivity
 import com.pcbrowser.chrome.R
@@ -23,6 +27,7 @@ class TabsManager(
 ) {
 
     val tabs = ArrayList<TabModel>()
+    val recentlyClosedTabs = ArrayDeque<String>()
     var activeTab: TabModel? = null
         private set
 
@@ -49,8 +54,49 @@ class TabsManager(
         tabTitle.text = tabModel.title
         tabModel.tabView = tabView
 
+        // Mouse pointer icons
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val handIcon = PointerIcon.getSystemIcon(activity, PointerIcon.TYPE_HAND)
+            tabView.pointerIcon = handIcon
+            btnClose.pointerIcon = handIcon
+        }
+
         tabView.setOnClickListener {
             selectTab(tabModel)
+        }
+
+        // Middle-Click to close tab, Right-Click for tab menu
+        tabView.setOnGenericMotionListener { _, event ->
+            if (event.action == MotionEvent.ACTION_BUTTON_PRESS) {
+                if ((event.buttonState and MotionEvent.BUTTON_TERTIARY) != 0) {
+                    closeTab(tabModel)
+                    return@setOnGenericMotionListener true
+                }
+                if ((event.buttonState and MotionEvent.BUTTON_SECONDARY) != 0) {
+                    showTabContextMenu(tabView, tabModel)
+                    return@setOnGenericMotionListener true
+                }
+            }
+            false
+        }
+
+        tabView.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                if ((event.buttonState and MotionEvent.BUTTON_TERTIARY) != 0) {
+                    closeTab(tabModel)
+                    return@setOnTouchListener true
+                }
+                if ((event.buttonState and MotionEvent.BUTTON_SECONDARY) != 0) {
+                    showTabContextMenu(tabView, tabModel)
+                    return@setOnTouchListener true
+                }
+            }
+            false
+        }
+
+        tabView.setOnLongClickListener {
+            showTabContextMenu(tabView, tabModel)
+            true
         }
 
         btnClose.setOnClickListener {
@@ -113,6 +159,13 @@ class TabsManager(
         val index = tabs.indexOf(tabToClose)
         if (index < 0) return
 
+        if (tabToClose.url.isNotEmpty() && tabToClose.url != "about:blank") {
+            recentlyClosedTabs.addLast(tabToClose.url)
+            if (recentlyClosedTabs.size > 25) {
+                recentlyClosedTabs.removeFirst()
+            }
+        }
+
         val transaction = fragmentManager.beginTransaction()
         tabToClose.fragment?.let { frag ->
             if (frag.isAdded) {
@@ -135,6 +188,80 @@ class TabsManager(
             val nextIndex = if (index >= tabs.size) tabs.size - 1 else index
             selectTab(tabs[nextIndex])
         }
+    }
+
+    fun reopenLastClosedTab(): Boolean {
+        if (recentlyClosedTabs.isNotEmpty()) {
+            val url = recentlyClosedTabs.removeLast()
+            addTab(url, selectNow = true)
+            return true
+        }
+        return false
+    }
+
+    fun selectNextTab() {
+        if (tabs.size <= 1) return
+        val currentIndex = tabs.indexOf(activeTab)
+        val nextIndex = (currentIndex + 1) % tabs.size
+        selectTab(tabs[nextIndex])
+    }
+
+    fun selectPreviousTab() {
+        if (tabs.size <= 1) return
+        val currentIndex = tabs.indexOf(activeTab)
+        val prevIndex = if (currentIndex <= 0) tabs.size - 1 else currentIndex - 1
+        selectTab(tabs[prevIndex])
+    }
+
+    fun selectTabByIndex(index: Int) {
+        if (index in 0 until tabs.size) {
+            selectTab(tabs[index])
+        }
+    }
+
+    fun duplicateTab(tab: TabModel) {
+        addTab(tab.url, selectNow = true)
+    }
+
+    fun closeOtherTabs(tabKeep: TabModel) {
+        val toClose = tabs.filter { it != tabKeep }
+        for (t in toClose) {
+            closeTab(t)
+        }
+    }
+
+    fun showTabContextMenu(anchor: View, tab: TabModel) {
+        val popup = PopupMenu(activity, anchor)
+        val menu = popup.menu
+        menu.add(0, 1, 0, activity.getString(R.string.nav_reload))
+        menu.add(0, 2, 1, "Duplicate Tab")
+        menu.add(0, 3, 2, activity.getString(R.string.browser_tab_close))
+        if (tabs.size > 1) {
+            menu.add(0, 4, 3, "Close Other Tabs")
+        }
+
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    tab.fragment?.reload()
+                    true
+                }
+                2 -> {
+                    duplicateTab(tab)
+                    true
+                }
+                3 -> {
+                    closeTab(tab)
+                    true
+                }
+                4 -> {
+                    closeOtherTabs(tab)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
     }
 
     fun clearAllTabs() {

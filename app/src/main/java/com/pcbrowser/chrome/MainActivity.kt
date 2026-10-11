@@ -11,6 +11,7 @@ import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.print.PrintAttributes
 import android.print.PrintManager
@@ -19,6 +20,8 @@ import android.text.TextWatcher
 import android.util.Patterns
 import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.MotionEvent
+import android.view.PointerIcon
 import android.view.View
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
@@ -373,8 +376,21 @@ class MainActivity : AppCompatActivity() {
             tvTitle.text = bm.title
             ivIcon.setImageResource(getBookmarkIconRes(bm.url))
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                itemView.pointerIcon = PointerIcon.getSystemIcon(this, PointerIcon.TYPE_HAND)
+            }
+
             itemView.setOnClickListener {
                 navigateTo(bm.url)
+            }
+
+            itemView.setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_DOWN && (event.buttonState and MotionEvent.BUTTON_TERTIARY) != 0) {
+                    openNewTab(bm.url, selectNow = false)
+                    Toast.makeText(this, "Opened in background tab", Toast.LENGTH_SHORT).show()
+                    return@setOnTouchListener true
+                }
+                false
             }
 
             itemView.setOnLongClickListener {
@@ -512,8 +528,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val handIcon = PointerIcon.getSystemIcon(this, PointerIcon.TYPE_HAND)
+            val textIcon = PointerIcon.getSystemIcon(this, PointerIcon.TYPE_TEXT)
+
+            binding.btnBack.pointerIcon = handIcon
+            binding.btnFwd.pointerIcon = handIcon
+            binding.btnReload.pointerIcon = handIcon
+            binding.btnNewTab.pointerIcon = handIcon
+            binding.btnProfile.pointerIcon = handIcon
+            binding.btnDownloads.pointerIcon = handIcon
+            binding.btnKeyboardToggle.pointerIcon = handIcon
+            binding.btnMenu.pointerIcon = handIcon
+            binding.btnBookmarkStar.pointerIcon = handIcon
+            binding.btnClearAddress.pointerIcon = handIcon
+            binding.btnExitFullscreen.pointerIcon = handIcon
+            binding.addressBar.pointerIcon = textIcon
+        }
+
         binding.btnNewTab.setOnClickListener {
             openNewTab()
+        }
+
+        binding.btnNewTab.setOnGenericMotionListener { _, event ->
+            if (event.action == MotionEvent.ACTION_BUTTON_PRESS && (event.buttonState and MotionEvent.BUTTON_TERTIARY) != 0) {
+                openNewTab()
+                return@setOnGenericMotionListener true
+            }
+            false
         }
 
         binding.btnBack.setOnClickListener {
@@ -657,8 +699,40 @@ class MainActivity : AppCompatActivity() {
         binding.addressBar.clearFocus()
     }
 
-    fun openNewTab(url: String = SearchEngineManager.getEngine(settings.activeSearchEngineId).homepageUrl) {
-        tabsManager.addTab(url, selectNow = true)
+    fun openNewTab(url: String = SearchEngineManager.getEngine(settings.activeSearchEngineId).homepageUrl, selectNow: Boolean = true) {
+        tabsManager.addTab(url, selectNow = selectNow)
+    }
+
+    fun reopenLastClosedTab() {
+        if (!tabsManager.reopenLastClosedTab()) {
+            Toast.makeText(this, "No recently closed tabs", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun showFindInPage() {
+        findInPage.show()
+    }
+
+    fun zoomIn() {
+        val steps = intArrayOf(50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300)
+        val next = steps.firstOrNull { it > currentZoomPercent } ?: 300
+        setZoomPercent(next)
+    }
+
+    fun zoomOut() {
+        val steps = intArrayOf(50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300)
+        val prev = steps.lastOrNull { it < currentZoomPercent } ?: 50
+        setZoomPercent(prev)
+    }
+
+    fun resetZoom() {
+        setZoomPercent(100)
+    }
+
+    fun setZoomPercent(percent: Int) {
+        currentZoomPercent = percent.coerceIn(50, 300)
+        tabsManager.activeTab?.fragment?.setZoom(currentZoomPercent)
+        Toast.makeText(this, "Zoom: $currentZoomPercent%", Toast.LENGTH_SHORT).show()
     }
 
     fun saveImage(url: String) {
@@ -764,77 +838,214 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        // If an EditText has focus (e.g. AddressBarView, search input, dialogs), let it handle its own keys
-        val focused = currentFocus
-        if (focused is EditText) {
-            return super.dispatchKeyEvent(event)
+        // Handle global desktop browser shortcuts across the window
+        if (handleShortcut(event)) {
+            return true
         }
 
-        // Global shortcuts for Copy, Paste, Cut, Select-All when webView or window is focused
-        val isCopy = event.keyCode == KeyEvent.KEYCODE_COPY || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_C)
-        val isPaste = event.keyCode == KeyEvent.KEYCODE_PASTE || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_V)
-        val isCut = event.keyCode == KeyEvent.KEYCODE_CUT || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_X)
-        val isSelectAll = event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_A
-
-        val activeWv = tabsManager.activeTab?.fragment?.webView
-        if (activeWv != null) {
-            if (isCopy) {
-                if (event.action == KeyEvent.ACTION_DOWN) activeWv.copySelection()
-                return true
-            }
-            if (isPaste) {
-                if (event.action == KeyEvent.ACTION_DOWN) activeWv.pasteClipboard()
-                return true
-            }
-            if (isCut) {
-                if (event.action == KeyEvent.ACTION_DOWN) activeWv.cutSelection()
-                return true
-            }
-            if (isSelectAll) {
-                if (event.action == KeyEvent.ACTION_DOWN) activeWv.selectAllContent()
-                return true
-            }
-        }
-
+        // Delegate to focused view
         return super.dispatchKeyEvent(event)
     }
 
-    fun handleShortcut(keyCode: Int): Boolean {
-        when (keyCode) {
-            KeyEvent.KEYCODE_F11 -> {
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_BUTTON_PRESS) {
+            // Mouse Thumb Back button (Button 4)
+            if ((event.buttonState and MotionEvent.BUTTON_BACK) != 0) {
+                val activeFrag = tabsManager.activeTab?.fragment
+                if (activeFrag?.canGoBack() == true) {
+                    activeFrag.goBack()
+                    return true
+                }
+            }
+            // Mouse Thumb Forward button (Button 5)
+            if ((event.buttonState and MotionEvent.BUTTON_FORWARD) != 0) {
+                val activeFrag = tabsManager.activeTab?.fragment
+                if (activeFrag?.canGoForward() == true) {
+                    activeFrag.goForward()
+                    return true
+                }
+            }
+        }
+        return super.dispatchGenericMotionEvent(event)
+    }
+
+    fun handleShortcut(event: KeyEvent): Boolean {
+        if (event.action != KeyEvent.ACTION_DOWN) return false
+        val keyCode = event.keyCode
+        val isCtrl = event.isCtrlPressed
+        val isShift = event.isShiftPressed
+        val isAlt = event.isAltPressed
+
+        // Ctrl + Shift shortcuts
+        if (isCtrl && isShift) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_T -> {
+                    reopenLastClosedTab()
+                    return true
+                }
+                KeyEvent.KEYCODE_TAB, KeyEvent.KEYCODE_PAGE_UP -> {
+                    tabsManager.selectPreviousTab()
+                    return true
+                }
+                KeyEvent.KEYCODE_B -> {
+                    settings.showBookmarksBar = !settings.showBookmarksBar
+                    refreshBookmarksBar()
+                    val msg = if (settings.showBookmarksBar) "Bookmarks bar visible" else "Bookmarks bar hidden"
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                    return true
+                }
+                KeyEvent.KEYCODE_N -> {
+                    // Guest Mode
+                    switchProfile(ProfileModel(id = "profile_guest", name = "Guest", color = Color.parseColor("#495057"), avatarEmoji = "G", isGuest = true))
+                    return true
+                }
+                KeyEvent.KEYCODE_R -> {
+                    // Hard reload (clear cache and reload)
+                    tabsManager.activeTab?.fragment?.webView?.clearCache(true)
+                    tabsManager.activeTab?.fragment?.reload()
+                    Toast.makeText(this, "Hard reloading page...", Toast.LENGTH_SHORT).show()
+                    return true
+                }
+            }
+        }
+
+        // Ctrl + Number shortcuts (Ctrl + 1..8: tab 1..8, Ctrl + 9: last tab)
+        if (isCtrl && !isShift && !isAlt) {
+            if (keyCode in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_8) {
+                val index = keyCode - KeyEvent.KEYCODE_1
+                tabsManager.selectTabByIndex(index)
+                return true
+            }
+            if (keyCode == KeyEvent.KEYCODE_9) {
+                tabsManager.selectTabByIndex(tabsManager.tabs.size - 1)
+                return true
+            }
+        }
+
+        // Window & Browser Shortcuts
+        when {
+            keyCode == KeyEvent.KEYCODE_F11 -> {
                 setDesktopFullscreen(!isDesktopFullscreen)
                 return true
             }
-            KeyEvent.KEYCODE_ESCAPE -> {
+            keyCode == KeyEvent.KEYCODE_ESCAPE -> {
                 if (isDesktopFullscreen) {
                     setDesktopFullscreen(false)
                     return true
                 }
+                if (findInPage.isVisible()) {
+                    findInPage.hide()
+                    return true
+                }
+                val activeTab = tabsManager.activeTab
+                if (activeTab?.isLoading == true) {
+                    activeTab.fragment?.stopLoading()
+                    return true
+                }
+                if (binding.addressBar.hasFocus()) {
+                    binding.addressBar.clearFocus()
+                    activeTab?.fragment?.webView?.requestFocus()
+                    return true
+                }
             }
-            KeyEvent.KEYCODE_T -> {
+            isCtrl && keyCode == KeyEvent.KEYCODE_T -> {
                 openNewTab()
                 return true
             }
-            KeyEvent.KEYCODE_W -> {
+            isCtrl && (keyCode == KeyEvent.KEYCODE_W || keyCode == KeyEvent.KEYCODE_F4) -> {
                 tabsManager.activeTab?.let { tabsManager.closeTab(it) }
                 return true
             }
-            KeyEvent.KEYCODE_R -> {
+            isCtrl && (keyCode == KeyEvent.KEYCODE_TAB || keyCode == KeyEvent.KEYCODE_PAGE_DOWN) -> {
+                tabsManager.selectNextTab()
+                return true
+            }
+            isCtrl && keyCode == KeyEvent.KEYCODE_PAGE_UP -> {
+                tabsManager.selectPreviousTab()
+                return true
+            }
+            (isCtrl && keyCode == KeyEvent.KEYCODE_R) || keyCode == KeyEvent.KEYCODE_F5 -> {
                 tabsManager.activeTab?.fragment?.reload()
                 return true
             }
-            KeyEvent.KEYCODE_F -> {
+            (isCtrl && keyCode == KeyEvent.KEYCODE_L) || (isAlt && keyCode == KeyEvent.KEYCODE_D) || keyCode == KeyEvent.KEYCODE_F6 -> {
+                binding.addressBar.requestFocus()
+                binding.addressBar.selectAll()
+                if (!settings.restrictVirtualKeyboard) showKeyboard()
+                return true
+            }
+            (isCtrl && keyCode == KeyEvent.KEYCODE_F) || keyCode == KeyEvent.KEYCODE_F3 -> {
                 findInPage.show()
                 return true
             }
-            KeyEvent.KEYCODE_P -> {
+            isCtrl && keyCode == KeyEvent.KEYCODE_H -> {
+                DialogHistory(this, historyManager, profileManager.getActiveProfile().id) { url ->
+                    navigateTo(url)
+                }.show()
+                return true
+            }
+            isCtrl && keyCode == KeyEvent.KEYCODE_J -> {
+                downloadsPopup.showDownloadStatus(binding.btnDownloads, null, 3)
+                return true
+            }
+            isCtrl && keyCode == KeyEvent.KEYCODE_D -> {
+                binding.btnBookmarkStar.performClick()
+                return true
+            }
+            isCtrl && keyCode == KeyEvent.KEYCODE_P -> {
                 printCurrentPage()
                 return true
             }
-            KeyEvent.KEYCODE_L -> {
-                binding.addressBar.requestFocus()
-                showKeyboard()
+            isCtrl && keyCode == KeyEvent.KEYCODE_S -> {
+                val webView = tabsManager.activeTab?.fragment?.webView
+                if (webView != null) ScreenshotHelper.captureAndShare(this, webView)
                 return true
+            }
+            isCtrl && (keyCode == KeyEvent.KEYCODE_EQUALS || keyCode == KeyEvent.KEYCODE_PLUS || keyCode == KeyEvent.KEYCODE_NUMPAD_ADD) -> {
+                zoomIn()
+                return true
+            }
+            isCtrl && (keyCode == KeyEvent.KEYCODE_MINUS || keyCode == KeyEvent.KEYCODE_NUMPAD_SUBTRACT) -> {
+                zoomOut()
+                return true
+            }
+            isCtrl && (keyCode == KeyEvent.KEYCODE_0 || keyCode == KeyEvent.KEYCODE_NUMPAD_0) -> {
+                resetZoom()
+                return true
+            }
+            isAlt && (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_NAVIGATE_PREVIOUS) -> {
+                tabsManager.activeTab?.fragment?.goBack()
+                return true
+            }
+            isAlt && (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT || keyCode == KeyEvent.KEYCODE_NAVIGATE_NEXT) -> {
+                tabsManager.activeTab?.fragment?.goForward()
+                return true
+            }
+            // Page Scrolling with Space / PageUp / PageDown / Home / End when not typing in an input
+            !isCtrl && !isAlt && currentFocus !is EditText -> {
+                val wv = tabsManager.activeTab?.fragment?.webView
+                when (keyCode) {
+                    KeyEvent.KEYCODE_SPACE -> {
+                        if (isShift) wv?.pageUp(false) else wv?.pageDown(false)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_PAGE_DOWN -> {
+                        wv?.pageDown(false)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_PAGE_UP -> {
+                        wv?.pageUp(false)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_MOVE_HOME -> {
+                        wv?.pageUp(true)
+                        return true
+                    }
+                    KeyEvent.KEYCODE_MOVE_END -> {
+                        wv?.pageDown(true)
+                        return true
+                    }
+                }
             }
         }
         return false
@@ -990,7 +1201,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun printCurrentPage() {
+    fun printCurrentPage() {
         val webView = tabsManager.activeTab?.fragment?.webView ?: return
         val printManager = getSystemService(Context.PRINT_SERVICE) as? PrintManager ?: return
         val adapter = webView.createPrintDocumentAdapter("Chrome PC Document")
@@ -1000,7 +1211,7 @@ class MainActivity : AppCompatActivity() {
     private fun showAboutDialog() {
         AlertDialog.Builder(this)
             .setTitle(R.string.app_name)
-            .setMessage("DeskWeb - Desktop Web Browser for Android\nDesktop-Class Web Experience.")
+            .setMessage("DeskWeb v1.0.1 - Desktop Web Browser for Android\nDesktop-Class Web Experience with full physical keyboard & mouse integration.")
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }

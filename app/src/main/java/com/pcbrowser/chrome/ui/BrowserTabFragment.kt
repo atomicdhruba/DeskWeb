@@ -106,21 +106,41 @@ class BrowserTabFragment : Fragment() {
         wv.isKeyboardRestricted = mainActivity?.isKeyboardRestricted() ?: false
         wv.keyShortcutListener = object : ShortcutWebView.KeyShortcutListener {
             override fun onShortcut(keyCode: Int, event: KeyEvent): Boolean {
-                return mainActivity?.handleShortcut(keyCode) ?: false
+                return mainActivity?.handleShortcut(event) ?: false
             }
         }
 
-        // Right-Click & Long-Press context menu
-        wv.setOnGenericMotionListener { _, motionEvent ->
-            if ((motionEvent.buttonState and MotionEvent.BUTTON_SECONDARY) != 0 &&
-                motionEvent.action == MotionEvent.ACTION_BUTTON_PRESS
-            ) {
-                showContextMenu(wv)
-                return@setOnGenericMotionListener true
+        // Setup Desktop Mouse Event Handling
+        wv.mouseEventListener = object : ShortcutWebView.MouseEventListener {
+            override fun onMiddleClick(url: String?) {
+                if (!url.isNullOrEmpty()) {
+                    mainActivity?.openNewTab(url, selectNow = false)
+                    android.widget.Toast.makeText(requireContext(), "Opened in background tab", android.widget.Toast.LENGTH_SHORT).show()
+                }
             }
-            false
+
+            override fun onZoomIn() {
+                mainActivity?.zoomIn()
+            }
+
+            override fun onZoomOut() {
+                mainActivity?.zoomOut()
+            }
+
+            override fun onNavigateBack() {
+                if (canGoBack()) goBack()
+            }
+
+            override fun onNavigateForward() {
+                if (canGoForward()) goForward()
+            }
+
+            override fun onShowContextMenu(x: Float, y: Float) {
+                showContextMenu(wv, x, y)
+            }
         }
 
+        // Long-Press context menu fallback
         wv.setOnLongClickListener {
             showContextMenu(wv)
             true
@@ -133,18 +153,10 @@ class BrowserTabFragment : Fragment() {
         return view
     }
 
-    private fun showContextMenu(wv: WebView) {
+    private fun showContextMenu(wv: WebView, x: Float = 0f, y: Float = 0f) {
         val hitTestResult = wv.hitTestResult
         val mainActivity = activity as? MainActivity ?: return
-        ContextMenuBR.show(requireContext(), wv, hitTestResult, object : ContextMenuBR.ContextMenuCallback {
-            override fun onOpenInNewTab(url: String) {
-                mainActivity.openNewTab(url)
-            }
-
-            override fun onSaveImage(url: String) {
-                mainActivity.saveImage(url)
-            }
-        })
+        ContextMenuBR.show(mainActivity, wv, hitTestResult, x, y)
     }
 
     private fun setupClients(wv: ShortcutWebView, mainActivity: MainActivity?) {

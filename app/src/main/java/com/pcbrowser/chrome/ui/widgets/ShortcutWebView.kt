@@ -24,7 +24,17 @@ class ShortcutWebView @JvmOverloads constructor(
         fun onShortcut(keyCode: Int, event: KeyEvent): Boolean
     }
 
+    interface MouseEventListener {
+        fun onMiddleClick(url: String?)
+        fun onZoomIn()
+        fun onZoomOut()
+        fun onNavigateBack()
+        fun onNavigateForward()
+        fun onShowContextMenu(x: Float, y: Float)
+    }
+
     var keyShortcutListener: KeyShortcutListener? = null
+    var mouseEventListener: MouseEventListener? = null
 
     var isKeyboardRestricted: Boolean = false
         set(value) {
@@ -33,32 +43,112 @@ class ShortcutWebView @JvmOverloads constructor(
         }
 
     fun applyKeyboardRestrictionJs(restricted: Boolean) {
-        if (restricted) {
-            evaluateJavascript("""
+        val script = if (restricted) {
+            """
                 (function() {
                     try {
-                        var inputs = document.querySelectorAll('input, textarea');
-                        for (var i = 0; i < inputs.length; i++) {
-                            inputs[i].setAttribute('inputmode', 'none');
+                        if (!window.__deskwebKeyboardObserver) {
+                            window.__deskwebKeyboardObserver = new MutationObserver(function() {
+                                if (window.__deskwebRestricted) {
+                                    var items = document.querySelectorAll('input:not([inputmode="none"]), textarea:not([inputmode="none"])');
+                                    for (var i = 0; i < items.length; i++) {
+                                        items[i].setAttribute('inputmode', 'none');
+                                    }
+                                }
+                            });
                         }
+                        window.__deskwebRestricted = true;
+                        var items = document.querySelectorAll('input, textarea');
+                        for (var i = 0; i < items.length; i++) {
+                            items[i].setAttribute('inputmode', 'none');
+                        }
+                        window.__deskwebKeyboardObserver.observe(document.documentElement || document.body, { childList: true, subtree: true });
                     } catch(e) {}
                 })();
-            """.trimIndent(), null)
+            """.trimIndent()
         } else {
-            evaluateJavascript("""
+            """
                 (function() {
                     try {
-                        var inputs = document.querySelectorAll('input[inputmode="none"], textarea[inputmode="none"]');
-                        for (var i = 0; i < inputs.length; i++) {
-                            inputs[i].removeAttribute('inputmode');
+                        window.__deskwebRestricted = false;
+                        if (window.__deskwebKeyboardObserver) {
+                            window.__deskwebKeyboardObserver.disconnect();
+                        }
+                        var items = document.querySelectorAll('input[inputmode="none"], textarea[inputmode="none"]');
+                        for (var i = 0; i < items.length; i++) {
+                            items[i].removeAttribute('inputmode');
                         }
                     } catch(e) {}
                 })();
-            """.trimIndent(), null)
+            """.trimIndent()
         }
+        evaluateJavascript(script, null)
+    }
+
+    override fun onGenericMotionEvent(event: android.view.MotionEvent): Boolean {
+        // 1. Mouse Scroll Wheel interactions
+        if (event.action == android.view.MotionEvent.ACTION_SCROLL) {
+            val vScroll = event.getAxisValue(android.view.MotionEvent.AXIS_VSCROLL)
+            val isCtrl = (event.metaState and KeyEvent.META_CTRL_ON) != 0
+            val isShift = (event.metaState and KeyEvent.META_SHIFT_ON) != 0
+            if (isCtrl) {
+                // Ctrl + Mouse Wheel Zoom
+                if (vScroll > 0) {
+                    mouseEventListener?.onZoomIn()
+                    return true
+                } else if (vScroll < 0) {
+                    mouseEventListener?.onZoomOut()
+                    return true
+                }
+            } else if (isShift && vScroll != 0f) {
+                // Shift + Mouse Wheel Horizontal Scroll
+                scrollBy((-vScroll * 60).toInt(), 0)
+                return true
+            }
+        }
+
+        // 2. Mouse Button Press (Thumb Buttons & Middle Click)
+        if (event.action == android.view.MotionEvent.ACTION_BUTTON_PRESS) {
+            if ((event.buttonState and android.view.MotionEvent.BUTTON_BACK) != 0) {
+                mouseEventListener?.onNavigateBack()
+                return true
+            }
+            if ((event.buttonState and android.view.MotionEvent.BUTTON_FORWARD) != 0) {
+                mouseEventListener?.onNavigateForward()
+                return true
+            }
+            if ((event.buttonState and android.view.MotionEvent.BUTTON_TERTIARY) != 0) {
+                handleMiddleClick(event.x, event.y)
+                return true
+            }
+            if ((event.buttonState and android.view.MotionEvent.BUTTON_SECONDARY) != 0) {
+                mouseEventListener?.onShowContextMenu(event.x, event.y)
+                return true
+            }
+        }
+
+        return super.onGenericMotionEvent(event)
     }
 
     override fun onTouchEvent(event: android.view.MotionEvent?): Boolean {
+        if (event != null) {
+            // Middle-Click (wheel click) detection
+            if (event.action == android.view.MotionEvent.ACTION_DOWN &&
+                (event.buttonState and android.view.MotionEvent.BUTTON_TERTIARY) != 0
+            ) {
+                handleMiddleClick(event.x, event.y)
+                return true
+            }
+
+            // Right-Click (secondary button) detection
+            if (event.action == android.view.MotionEvent.ACTION_DOWN &&
+                (event.buttonState and android.view.MotionEvent.BUTTON_SECONDARY) != 0
+            ) {
+                mouseEventListener?.onShowContextMenu(event.x, event.y)
+                return true
+            }
+        }
+
         if (isKeyboardRestricted && event?.action == android.view.MotionEvent.ACTION_UP) {
             applyKeyboardRestrictionJs(true)
             post {
@@ -69,34 +159,82 @@ class ShortcutWebView @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
 
+    fun handleMiddleClick(x: Float, y: Float) {
+        val result = hitTestResult
+        val linkUrl = if (result.type == HitTestResult.SRC_ANCHOR_TYPE || result.type == HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
+            result.extra
+        } else null
+
+        if (!linkUrl.isNullOrEmpty()) {
+            mouseEventListener?.onMiddleClick(linkUrl)
+        } else {
+            val density = resources.displayMetrics.density
+            val cssX = (x / density).toInt()
+            val cssY = (y / density).toInt()
+            evaluateJavascript("""
+                (function() {
+                    var el = document.elementFromPoint($cssX, $cssY);
+                    var a = el ? el.closest('a') : null;
+                    return a ? a.href : '';
+                })()
+            """.trimIndent()) { res ->
+                val parsed = res?.trim('"')?.replace("\\\"", "\"")
+                if (!parsed.isNullOrEmpty() && parsed != "null" && parsed != "\"\"") {
+                    post { mouseEventListener?.onMiddleClick(parsed) }
+                }
+            }
+        }
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        val isCopy = event.keyCode == KeyEvent.KEYCODE_COPY || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_C)
-        val isPaste = event.keyCode == KeyEvent.KEYCODE_PASTE || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_V)
-        val isCut = event.keyCode == KeyEvent.KEYCODE_CUT || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_X)
-        val isSelectAll = event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_A
-
-        if (isCopy) {
-            if (event.action == KeyEvent.ACTION_DOWN) copySelection()
-            return true
-        }
-        if (isPaste) {
-            if (event.action == KeyEvent.ACTION_DOWN) pasteClipboard()
-            return true
-        }
-        if (isCut) {
-            if (event.action == KeyEvent.ACTION_DOWN) cutSelection()
-            return true
-        }
-        if (isSelectAll) {
-            if (event.action == KeyEvent.ACTION_DOWN) selectAllContent()
-            return true
-        }
-
-        if (event.action == KeyEvent.ACTION_DOWN && event.isCtrlPressed) {
+        // 1. Let parent handle browser navigation shortcuts (Ctrl+T, Ctrl+W, Ctrl+R, F5, F11, etc.)
+        if (event.action == KeyEvent.ACTION_DOWN) {
             val handled = keyShortcutListener?.onShortcut(event.keyCode, event) ?: false
             if (handled) return true
         }
-        return super.dispatchKeyEvent(event)
+
+        // 2. Delegate to Chromium's native keyboard pipeline (typing, arrows, forms)
+        val chromiumHandled = super.dispatchKeyEvent(event)
+        if (chromiumHandled) return true
+
+        // 3. Fallback editing shortcuts if not consumed by page
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            val isCopy = event.keyCode == KeyEvent.KEYCODE_COPY || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_C)
+            val isPaste = event.keyCode == KeyEvent.KEYCODE_PASTE || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_V)
+            val isCut = event.keyCode == KeyEvent.KEYCODE_CUT || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_X)
+            val isSelectAll = event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_A
+            val isUndo = event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_Z && !event.isShiftPressed
+            val isRedo = (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_Y) || (event.isCtrlPressed && event.isShiftPressed && event.keyCode == KeyEvent.KEYCODE_Z)
+
+            when {
+                isCopy -> {
+                    copySelection()
+                    return true
+                }
+                isPaste -> {
+                    pasteClipboard()
+                    return true
+                }
+                isCut -> {
+                    cutSelection()
+                    return true
+                }
+                isSelectAll -> {
+                    selectAllContent()
+                    return true
+                }
+                isUndo -> {
+                    evaluateJavascript("document.execCommand('undo')", null)
+                    return true
+                }
+                isRedo -> {
+                    evaluateJavascript("document.execCommand('redo')", null)
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 
     fun copySelection() {

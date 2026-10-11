@@ -53,6 +53,20 @@ class UIFinder(
                 }
             })
 
+            editSearch.setOnKeyListener { _, keyCode, event ->
+                if (event.action == android.view.KeyEvent.ACTION_DOWN) {
+                    if (keyCode == android.view.KeyEvent.KEYCODE_ENTER) {
+                        getActiveWebView()?.findNext(!event.isShiftPressed)
+                        return@setOnKeyListener true
+                    }
+                    if (keyCode == android.view.KeyEvent.KEYCODE_ESCAPE) {
+                        hide()
+                        return@setOnKeyListener true
+                    }
+                }
+                false
+            }
+
             btnNext.setOnClickListener {
                 getActiveWebView()?.findNext(true)
             }

@@ -52,26 +52,40 @@ class AddressBarView @JvmOverloads constructor(
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            setText(formatDisplayUrl(rawAddress))
+            clearFocus()
+            return true
+        }
+
         val isCopy = event.keyCode == KeyEvent.KEYCODE_COPY || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_C)
         val isPaste = event.keyCode == KeyEvent.KEYCODE_PASTE || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_V)
         val isCut = event.keyCode == KeyEvent.KEYCODE_CUT || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_X)
         val isSelectAll = event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_A
 
-        if (isCopy) {
-            if (event.action == KeyEvent.ACTION_DOWN) copyToClipboard()
-            return true
-        }
-        if (isPaste) {
-            if (event.action == KeyEvent.ACTION_DOWN) pasteFromClipboard()
-            return true
-        }
-        if (isCut) {
-            if (event.action == KeyEvent.ACTION_DOWN) cutToClipboard()
-            return true
-        }
-        if (isSelectAll) {
-            if (event.action == KeyEvent.ACTION_DOWN) selectAll()
-            return true
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            when {
+                isCopy -> {
+                    copyToClipboard()
+                    return true
+                }
+                isPaste -> {
+                    pasteFromClipboard()
+                    return true
+                }
+                isCut -> {
+                    cutToClipboard()
+                    return true
+                }
+                isSelectAll -> {
+                    selectAll()
+                    return true
+                }
+            }
+        } else if (event.action == KeyEvent.ACTION_UP) {
+            if (isCopy || isPaste || isCut || isSelectAll) {
+                return true
+            }
         }
 
         return super.dispatchKeyEvent(event)
