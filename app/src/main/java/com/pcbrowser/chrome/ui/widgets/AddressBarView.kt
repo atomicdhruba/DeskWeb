@@ -1,9 +1,12 @@
 package com.pcbrowser.chrome.ui.widgets
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Rect
 import android.net.Uri
 import android.util.AttributeSet
+import android.view.KeyEvent
 import androidx.appcompat.widget.AppCompatAutoCompleteTextView
 
 class AddressBarView @JvmOverloads constructor(
@@ -45,6 +48,84 @@ class AddressBarView @JvmOverloads constructor(
             setText(formatDisplayUrl(rawAddress))
             setSelection(0)
             isUserEditing = false
+        }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val isCopy = event.keyCode == KeyEvent.KEYCODE_COPY || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_C)
+        val isPaste = event.keyCode == KeyEvent.KEYCODE_PASTE || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_V)
+        val isCut = event.keyCode == KeyEvent.KEYCODE_CUT || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_X)
+        val isSelectAll = event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_A
+
+        if (isCopy) {
+            if (event.action == KeyEvent.ACTION_DOWN) copyToClipboard()
+            return true
+        }
+        if (isPaste) {
+            if (event.action == KeyEvent.ACTION_DOWN) pasteFromClipboard()
+            return true
+        }
+        if (isCut) {
+            if (event.action == KeyEvent.ACTION_DOWN) cutToClipboard()
+            return true
+        }
+        if (isSelectAll) {
+            if (event.action == KeyEvent.ACTION_DOWN) selectAll()
+            return true
+        }
+
+        return super.dispatchKeyEvent(event)
+    }
+
+    fun copyToClipboard() {
+        val start = selectionStart
+        val end = selectionEnd
+        val selectedText = if (start >= 0 && end >= 0 && start != end) {
+            val min = minOf(start, end)
+            val max = maxOf(start, end)
+            text?.substring(min, max) ?: ""
+        } else {
+            text?.toString() ?: ""
+        }
+        if (selectedText.isNotEmpty()) {
+            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            cm?.setPrimaryClip(android.content.ClipData.newPlainText("URL", selectedText))
+        }
+    }
+
+    fun pasteFromClipboard() {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        val clip = cm?.primaryClip
+        if (clip != null && clip.itemCount > 0) {
+            val pasteText = clip.getItemAt(0).coerceToText(context).toString()
+            val start = selectionStart
+            val end = selectionEnd
+            val editable = text
+            if (editable != null) {
+                if (start >= 0 && end >= 0 && start != end) {
+                    val min = minOf(start, end)
+                    val max = maxOf(start, end)
+                    editable.replace(min, max, pasteText)
+                } else if (start >= 0) {
+                    editable.insert(start, pasteText)
+                } else {
+                    editable.append(pasteText)
+                }
+                isUserEditing = true
+            }
+        }
+    }
+
+    fun cutToClipboard() {
+        copyToClipboard()
+        val start = selectionStart
+        val end = selectionEnd
+        val editable = text
+        if (editable != null && start >= 0 && end >= 0 && start != end) {
+            val min = minOf(start, end)
+            val max = maxOf(start, end)
+            editable.delete(min, max)
+            isUserEditing = true
         }
     }
 

@@ -755,6 +755,42 @@ class MainActivity : AppCompatActivity() {
         applyImmersiveFullscreen()
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // If an EditText has focus (e.g. AddressBarView, search input, dialogs), let it handle its own keys
+        val focused = currentFocus
+        if (focused is EditText) {
+            return super.dispatchKeyEvent(event)
+        }
+
+        // Global shortcuts for Copy, Paste, Cut, Select-All when webView or window is focused
+        val isCopy = event.keyCode == KeyEvent.KEYCODE_COPY || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_C)
+        val isPaste = event.keyCode == KeyEvent.KEYCODE_PASTE || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_V)
+        val isCut = event.keyCode == KeyEvent.KEYCODE_CUT || (event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_X)
+        val isSelectAll = event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_A
+
+        val activeWv = tabsManager.activeTab?.fragment?.webView
+        if (activeWv != null) {
+            if (isCopy) {
+                if (event.action == KeyEvent.ACTION_DOWN) activeWv.copySelection()
+                return true
+            }
+            if (isPaste) {
+                if (event.action == KeyEvent.ACTION_DOWN) activeWv.pasteClipboard()
+                return true
+            }
+            if (isCut) {
+                if (event.action == KeyEvent.ACTION_DOWN) activeWv.cutSelection()
+                return true
+            }
+            if (isSelectAll) {
+                if (event.action == KeyEvent.ACTION_DOWN) activeWv.selectAllContent()
+                return true
+            }
+        }
+
+        return super.dispatchKeyEvent(event)
+    }
+
     fun handleShortcut(keyCode: Int): Boolean {
         when (keyCode) {
             KeyEvent.KEYCODE_F11 -> {
